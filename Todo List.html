@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>🗒️ Att göra - Lista med redigering via emoji-penna</title>
+<style>
+  body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    max-width: 600px;
+    margin: 40px auto;
+    padding: 0 20px 40px 20px;
+    background: #f4f7f9;
+    color: #333;
+  }
+  h1 {
+    text-align: center;
+    font-weight: 700;
+    font-size: 2.5rem;
+    margin-bottom: 10px;
+    color: #2c3e50;
+  }
+  h2 {
+    border-bottom: 3px solid #2980b9;
+    padding-bottom: 8px;
+    margin-top: 30px;
+    margin-bottom: 15px;
+    font-weight: 600;
+    color: #2980b9;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  ul {
+    list-style: none;
+    padding-left: 0;
+  }
+  li {
+    background: #fff;
+    margin-bottom: 12px;
+    padding: 12px 15px;
+    border-radius: 8px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 1.1rem;
+    transition: background-color 0.3s ease, transform 0.3s ease;
+  }
+  li:hover {
+    background-color: #e6f0fa;
+  }
+  label {
+    cursor: pointer;
+    flex-grow: 1;
+    user-select: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  input[type="checkbox"] {
+    width: 22px;
+    height: 22px;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+  }
+  input[type="checkbox"]:checked {
+    transform: scale(1.2);
+  }
+  /* Prioritetsfärger */
+  .priority-low {
+    color: #27ae60; /* grön */
+  }
+  .priority-medium {
+    color: #f39c12; /* orange */
+  }
+  .priority-high {
+    color: #e74c3c; /* röd */
+    font-weight: 700;
+  }
+  /* Prioritetsikon */
+  .priority-icon {
+    font-weight: 700;
+    font-size: 1.2rem;
+  }
+  /* Radera-knapp */
+  .delete-btn {
+    background: transparent;
+    border: none;
+    color: #c0392b;
+    font-size: 1.4rem;
+    cursor: pointer;
+    transition: color 0.3s ease;
+  }
+  .delete-btn:hover {
+    color: #e74c3c;
+  }
+  /* Editera-knapp med emoji-penna */
+  .edit-btn {
+    background: transparent;
+    border: none;
+    color: #2980b9;
+    font-size: 1.4rem;
+    cursor: pointer;
+    transition: color 0.3s ease;
+  }
+  .edit-btn:hover {
+    color: #3498db;
+  }
+  #newTask {
+    width: 40%;
+    padding: 12px 15px;
+    font-size: 1.1rem;
+    border: 2px solid #2980b9;
+    border-radius: 25px;
+    outline: none;
+    transition: border-color 0.3s ease;
+  }
+  #newTask:focus {
+    border-color: #3498db;
+    box-shadow: 0 0 6px #3498db;
+  }
+  select, input[type="datetime-local"] {
+    padding: 12px 15px;
+    font-size: 1.1rem;
+    border: 2px solid #2980b9;
+    border-radius: 25px;
+    outline: none;
+    margin-left: 10px;
+    transition: border-color 0.3s ease;
+  }
+  select:focus, input[type="datetime-local"]:focus {
+    border-color: #3498db;
+    box-shadow: 0 0 6px #3498db;
+  }
+  button {
+    padding: 12px 25px;
+    font-size: 1.1rem;
+    background-color: #2980b9;
+    color: white;
+    border: none;
+    border-radius: 25px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    margin-left: 10px;
+  }
+  button:hover {
+    background-color: #3498db;
+  }
+  h2 span.emoji {
+    font-size: 1.4rem;
+  }
+  /* Tooltip för radera och edit */
+  .delete-btn[title], .edit-btn[title] {
+    position: relative;
+  }
+  .delete-btn[title]:hover::after, .edit-btn[title]:hover::after {
+    content: attr(title);
+    position: absolute;
+    bottom: 150%;
+    right: 50%;
+    transform: translateX(50%);
+    background: #333;
+    color: #fff;
+    padding: 3px 8px;
+    border-radius: 5px;
+    white-space: nowrap;
+    font-size: 0.8rem;
+  }
+  /* Deadline text */
+  .deadline {
+    margin-left: 10px;
+    font-size: 0.9rem;
+    font-style: italic;
+  }
+  .deadline.overdue {
+    color: #e74c3c;
+    font-weight: 700;
+  }
+  /* Animationer */
+  @keyframes fadeIn {
+    from {opacity: 0; transform: translateY(10px);}
+    to {opacity: 1; transform: translateY(0);}
+  }
+  @keyframes fadeOutSlide {
+    from {opacity: 1; transform: translateX(0);}
+    to {opacity: 0; transform: translateX(50px);}
+  }
+  .fade-in {
+    animation: fadeIn 0.4s ease forwards;
+  }
+  .fade-out-slide {
+    animation: fadeOutSlide 0.4s ease forwards;
+  }
+
+  /* Påminnelse ruta */
+  #reminder {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #fffae6;
+    border: 2px solid #f1c40f;
+    padding: 15px 25px;
+    border-radius: 10px;
+    box-shadow: 0 3px 8px rgba(241, 196, 15, 0.4);
+    font-size: 1.2rem;
+    color: #f39c12;
+    display: none;
+    z-index: 1000;
+    max-width: 90vw;
+    text-align: center;
+  }
+  #reminder button {
+    margin-left: 15px;
+    background: #f39c12;
+    color: white;
+    border: none;
+    padding: 5px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1rem;
+    vertical-align: middle;
+    transition: background-color 0.3s ease;
+  }
+  #reminder button:hover {
+    background-color: #e67e22;
+  }
+
+  /* --- Mobilanpassning --- */
+  @media (max-width: 600px) {
+    body {
+      margin: 20px 10px 30px 10px;
+      max-width: 100%;
+    }
+    h1 {
+      font-size: 2rem;
+    }
+    #newTask {
+      width: 100%;
+      margin-bottom: 10px;
+      border-radius: 12px;
+    }
+    select, input[type="datetime-local"], button {
+      width: 48%;
+      margin-left: 0;
+      margin-bottom: 10px;
+      border-radius: 12px;
+      font-size: 1rem;
+    }
+    div[style*="display: flex"] {
+      flex-direction: column;
+      align-items: stretch;
+    }
+    li {
+      flex-wrap: wrap;
+      gap: 8px;
+      font-size: 1rem;
+      padding: 10px 12px;
+    }
+    label {
+      font-size: 1rem;
+    }
+    .delete-btn, .edit-btn {
+      font-size: 1.2rem;
+      flex-shrink: 0;
+    }
+  }
+
+  /* Redigeringsform */
+  .edit-form {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    flex-grow: 1;
+  }
+  .edit-form input[type="text"],
+  .edit-form select,
+  .edit-form input[type="datetime-local"] {
+    padding: 6px 10px;
+    font-size: 1rem;
+    border-radius: 8px;
+    border: 1.5px solid #2980b9;
+    outline: none;
+  }
+  .edit-save {
+    background-color: #27ae60;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: background-color 0.3s ease;
+  }
+  .edit-save:hover {
+    background-color: #2ecc71;
+  }
+  .edit-cancel {
+    background-color: #e74c3c;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: background-color 0.3s ease;
+  }
+  .edit-cancel:hover {
+    background-color: #c0392b;
+  }
+</style>
+</head>
+<body>
+
+<h1>🗒️ Att göra</h1>
+
+<div style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-bottom: 20px;">
+  <input type="text" id="newTask" placeholder="Skriv in ny uppgift..." aria-label="Skriv in ny uppgift" />
+  <select id="prioritySelect" aria-label="Välj prioritet">
+    <option value="low">🟢 Låg</option>
+    <option value="medium" selected>🟠 Medel</option>
+    <option value="high">🔴 Hög</option>
+  </select>
+  <input type="datetime-local" id="deadlineInput" aria-label="Välj deadline" />
+  <button onclick="addTask()">Lägg till</button>
+</div>
+
+<div id="reminder"></div>
+
+<h2><span class="emoji">📋</span> Att göra</h2>
+<ul id="todoList"></ul>
+
+<h2><span class="emoji">✅</span> Slutförda uppdrag</h2>
+<ul id="doneList"></ul>
+
+<!-- Confetti -->
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+<script>
+  let tasks = [];
+
+  const priorityEmoji = {
+    low: '🟢',
+    medium: '🟠',
+    high: '🔴'
+  };
+
+  function formatDateTime(dateTimeStr) {
+    if (!dateTimeStr) return '';
+    const dt = new Date(dateTimeStr);
+    if (isNaN(dt)) return '';
+    return dt.toLocaleString('sv-SE', { dateStyle: 'short', timeStyle: 'short' });
+  }
+
+  function isOverdue(dateTimeStr) {
+    if (!dateTimeStr) return false;
+    return new Date(dateTimeStr) < new Date();
+  }
+
+  function render() {
+    const todoList = document.getElementById('todoList');
+    const doneList = document.getElementById('doneList');
+
+    todoList.innerHTML = '';
+    doneList.innerHTML = '';
+
+    tasks.forEach((task, index) => {
+      const li = document.createElement('li');
+      li.classList.add('fade-in');
+
+      if (task.editing) {
+        // Redigeringsform
+        const form = document.createElement('form');
+        form.className = 'edit-form';
+
+        const textInput = document.createElement('input');
+        textInput.type = 'text';
+        textInput.value = task.text;
+        textInput.required = true;
+        textInput.style.flexGrow = '2';
+
+        const prioritySelect = document.createElement('select');
+        ['low', 'medium', 'high'].forEach(p => {
+          const option = document.createElement('option');
+          option.value = p;
+          option.textContent = priorityEmoji[p] + ' ' + p.charAt(0).toUpperCase() + p.slice(1);
+          if (task.priority === p) option.selected = true;
+          prioritySelect.appendChild(option);
+        });
+
+        const deadlineInput = document.createElement('input');
+        deadlineInput.type = 'datetime-local';
+        deadlineInput.value = task.deadline ? task.deadline.slice(0,16) : '';
+
+        const saveBtn = document.createElement('button');
+        saveBtn.type = 'submit';
+        saveBtn.textContent = 'Spara';
+        saveBtn.className = 'edit-save';
+
+        const cancelBtn = document.createElement('button');
+        cancelBtn.type = 'button';
+        cancelBtn.textContent = 'Avbryt';
+        cancelBtn.className = 'edit-cancel';
+        cancelBtn.onclick = () => {
+          task.editing = false;
+          render();
+        };
+
+        form.appendChild(textInput);
+        form.appendChild(prioritySelect);
+        form.appendChild(deadlineInput);
+        form.appendChild(saveBtn);
+        form.appendChild(cancelBtn);
+
+        form.addEventListener('submit', (e) => {
+          e.preventDefault();
+          const newText = textInput.value.trim();
+          if (!newText) {
+            alert('Uppgiften måste ha en text!');
+            return;
+          }
+          task.text = newText;
+          task.priority = prioritySelect.value;
+          task.deadline = deadlineInput.value || null;
+          task.editing = false;
+          render();
+        });
+
+        li.appendChild(form);
+      } else {
+        // Visa vanlig uppgift
+
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.id = 'task-' + index;
+        checkbox.checked = task.done;
+        checkbox.addEventListener('change', () => {
+          task.done = checkbox.checked;
+          render();
+          setTimeout(() => {
+            if (checkbox.checked) {
+              launchConfetti();
+            }
+          }, 400);
+        });
+
+        const label = document.createElement('label');
+        label.htmlFor = 'task-' + index;
+        label.style.flexGrow = '1';
+        label.style.display = 'flex';
+        label.style.alignItems = 'center';
+        label.style.gap = '8px';
+
+        // Prioritet med emoji och färg
+        const prioritySpan = document.createElement('span');
+        prioritySpan.classList.add('priority-icon');
+        if (task.priority === 'low') {
+          prioritySpan.textContent = '🟢';
+          prioritySpan.classList.add('priority-low');
+        } else if (task.priority === 'medium') {
+          prioritySpan.textContent = '🟠';
+          prioritySpan.classList.add('priority-medium');
+        } else if (task.priority === 'high') {
+          prioritySpan.textContent = '🔴';
+          prioritySpan.classList.add('priority-high');
+        }
+
+        // Text som klickbar för redigering (valfritt)
+        // Vi tar bort redigering på textklick, för att använda emoji-pennan istället
+        // taskTextSpan.addEventListener('click', () => {
+        //   task.editing = true;
+        //   render();
+        // });
+
+        const taskTextSpan = document.createElement('span');
+        taskTextSpan.textContent = task.text;
+        taskTextSpan.style.flexGrow = '1';
+        taskTextSpan.style.userSelect = 'none';
+
+        label.appendChild(checkbox);
+        label.appendChild(prioritySpan);
+        label.appendChild(taskTextSpan);
+
+        // Deadline visas om satt
+        if (task.deadline) {
+          const deadlineSpan = document.createElement('span');
+          deadlineSpan.classList.add('deadline');
+          if (isOverdue(task.deadline) && !task.done) {
+            deadlineSpan.classList.add('overdue');
+          }
+          deadlineSpan.textContent = '📅 ' + formatDateTime(task.deadline);
+          label.appendChild(deadlineSpan);
+        }
+
+        // Editera-knapp (emoji-penna)
+        const editBtn = document.createElement('button');
+        editBtn.className = 'edit-btn';
+        editBtn.title = 'Redigera uppgift';
+        editBtn.textContent = '✏️';
+        editBtn.addEventListener('click', () => {
+          task.editing = true;
+          render();
+        });
+
+        // Radera-knapp
+        const deleteBtn = document.createElement('button');
+        deleteBtn.textContent = '🗑️';
+        deleteBtn.classList.add('delete-btn');
+        deleteBtn.title = 'Radera uppgift';
+        deleteBtn.addEventListener('click', () => {
+          li.classList.add('fade-out-slide');
+          setTimeout(() => {
+            tasks.splice(index, 1);
+            render();
+          }, 300);
+        });
+
+        li.appendChild(label);
+        li.appendChild(editBtn);
+        li.appendChild(deleteBtn);
+      }
+
+      if (task.done) {
+        doneList.appendChild(li);
+      } else {
+        todoList.appendChild(li);
+      }
+    });
+  }
+
+  function addTask() {
+    const input = document.getElementById('newTask');
+    const prioritySelect = document.getElementById('prioritySelect');
+    const deadlineInput = document.getElementById('deadlineInput');
+
+    const text = input.value.trim();
+    const priority = prioritySelect.value;
+    const deadline = deadlineInput.value;
+
+    if (!text) {
+      alert('Skriv in en uppgift först!');
+      return;
+    }
+
+    tasks.push({
+      text,
+      done: false,
+      priority,
+      deadline: deadline || null,
+      createdAt: new Date().toISOString(),
+      editing: false
+    });
+
+    input.value = '';
+    deadlineInput.value = '';
+    prioritySelect.value = 'medium';
+
+    render();
+  }
+
+  // Lägg till enter-tangent för att lägga till uppgift
+  document.getElementById('newTask').addEventListener('keydown', function(event) {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      addTask();
+    }
+  });
+
+  // Confetti
+  function launchConfetti() {
+    confetti({
+      particleCount: 150,
+      spread: 70,
+      origin: { y: 0.6 }
+    });
+  }
+
+  // Påminnelsefunktion - körs var 1 minut
+  function checkReminders() {
+    const reminderBox = document.getElementById('reminder');
+    const now = new Date();
+    let nextReminder = null;
+    tasks.forEach(task => {
+      if (!task.done && task.deadline) {
+        const deadline = new Date(task.deadline);
+        const diff = deadline - now;
+        if (diff > 0 && diff <= 10 * 60 * 1000) { // 10 minuter innan deadline
+          if (!nextReminder || deadline < new Date(nextReminder.deadline)) {
+            nextReminder = task;
+          }
+        }
+      }
+    });
+    if (nextReminder) {
+      reminderBox.style.display = 'block';
+      reminderBox.innerHTML = 
+        Påminnelse! Uppgift: <b>${nextReminder.text}</b><br />
+        Prioritet: <span style="color: ${
+          nextReminder.priority === 'high' ? '#e74c3c' :
+          nextReminder.priority === 'medium' ? '#f39c12' :
+          '#27ae60'
+        }">${priorityEmoji[nextReminder.priority]}</span><br />
+        Deadline: ${formatDateTime(nextReminder.deadline)}
+        <button onclick="this.parentElement.style.display='none'">Stäng</button>
+      ;
+    } else {
+      reminderBox.style.display = 'none';
+    }
+  }
+  setInterval(checkReminders, 60000); // kolla varje minut
+
+  render();
+</script>
+
+</body>
+</html>
